@@ -7,10 +7,15 @@ pub enum BencodeValue<'a> {
     Dict(Vec<(&'a [u8],BencodeValue<'a>)>)
 }
 
-pub fn bdecode<'a, 'b>(data: &'a [u8]) -> Result<BencodeValue<'a>, &'b str> {
-    let (res, _) = bdec(data);
-    res
+impl<'a> BencodeValue<'a> {
+
+    ///Creates a new BencodeValue from the given u8 slice.
+    pub fn bdecode(data: &'a [u8]) -> Result<Self,&str> {
+        let (res, _) = bdec(data);
+        res
+    }
 }
+
 
 ///parses a bencoded data string, returns a result and the index after the last character parsed
 fn bdec<'a, 'b>(data: &'a [u8]) -> (Result<BencodeValue<'a>, &'b str>, usize) {
