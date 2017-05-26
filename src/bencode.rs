@@ -14,6 +14,47 @@ impl<'a> BencodeValue<'a> {
         let (res, _) = bdec(data);
         res
     }
+
+    pub fn bencode(&self) -> Vec<u8> {
+        match self {
+            &BencodeValue::Integer(i) => {
+                let mut res = Vec::new();
+                res.push('i' as u8);
+                res.extend_from_slice(i.to_string().as_bytes());
+                res.push('e' as u8);
+                res
+            },
+
+            &BencodeValue::Str(ref s) => {
+                let mut res = Vec::new();
+                res.extend_from_slice((s.len().to_string()+":").as_bytes());
+                res.extend_from_slice(s);
+                res
+            },
+            &BencodeValue::List(ref l) => {
+                let mut res = Vec::new();
+                res.push('l' as u8);
+                for val in l {
+                    res.append(&mut val.bencode());
+                }
+                res.push('e' as u8);
+                res
+            },
+            &BencodeValue::Dict(ref d) => {
+                let mut res = Vec::new();
+                res.push('d' as u8);
+                for &(ref s,ref v) in d {
+                    res.extend_from_slice((s.len().to_string() + ":").as_bytes());
+                    res.extend_from_slice(s);
+                    res.append(&mut v.bencode());
+
+                }
+                res.push('e' as u8);
+                res
+
+            }
+        }
+    }
 }
 
 

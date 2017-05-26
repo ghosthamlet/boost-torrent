@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Jake <jsandler18@gmail.com>"]
 
 [dependencies]
+regex = "0.2"
+byteorder = "1"
+rand = "0.3"
+sha1 = "0.2.0"

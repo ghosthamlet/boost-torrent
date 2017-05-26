@@ -1,19 +1,21 @@
 use bencode::BencodeValue;
 use std::fs::File;
 use std::io::prelude::*;
+use sha1::Sha1;
 use std::str;
 
 #[derive(Debug)]
 pub struct MetaInfo {
     pub announce_url : String,
-    pub piece_len : usize,
+    pub piece_len : u64,
+    pub info_hash : [u8; 20],
     pub piece_hashes : Vec<[u8; 20]>,
     pub file_info : FileInfo
 }
 
 #[derive(Debug)]
 pub enum FileInfo {
-    Single { filename : String, filelength : usize },
+    Single { filename : String, filelength : u64 },
     Multi { rootdir : String, files : Vec<FileInfo> }
 }
 
@@ -29,13 +31,29 @@ impl MetaInfo {
                 let announce_url = parse_announce(&dict)?;
                 let (piece_len, piece_hashes) = parse_pieces(&dict)?;
                 let file_info = parse_fileinfo(&dict)?;
-                Ok(MetaInfo { announce_url, piece_len, piece_hashes, file_info })
+                let info_hash = make_info_hash(&dict)?;
+                Ok(MetaInfo { announce_url, piece_len, info_hash, piece_hashes, file_info })
             } else {
                 Err("Toplevel not a dict")
             }
         }
 
 
+}
+
+fn make_info_hash<'a>(val: &BencodeValue) -> Result<[u8;20], &'a str> {
+    //get dict from val
+    if let &BencodeValue::Dict(ref d) = val {
+        //get value associated with info key
+        let &(_,ref info_dict) = d.iter().find(|&r| r.0 == "info".as_bytes()).ok_or("Could not find info dict")?;
+        let to_hash = info_dict.bencode();
+        let mut hasher = Sha1::new();
+        hasher.update(&to_hash.as_slice()[1..to_hash.len() - 1]);
+        Ok(hasher.digest().bytes())
+
+    } else {
+        Err("Value not a dictionary")
+    }
 }
 
 ///gets the announce url from the metafile bdecoded values
@@ -54,7 +72,7 @@ fn parse_announce<'a>(val: &BencodeValue) -> Result<String, &'a str> {
 }
 
 ///gets the piece length and the piece hashes from the metafile bdecoded values
-fn parse_pieces<'a>(val: &BencodeValue) -> Result<(usize, Vec<[u8;20]>), &'a str> {
+fn parse_pieces<'a>(val: &BencodeValue) -> Result<(u64, Vec<[u8;20]>), &'a str> {
     //get dict from val
     if let &BencodeValue::Dict(ref d) = val {
         //get peer dict
@@ -76,7 +94,7 @@ fn parse_pieces<'a>(val: &BencodeValue) -> Result<(usize, Vec<[u8;20]>), &'a str
                     piece_vec.push(hash);
                     pos+=20;
                 }
-                Ok((len as usize,  piece_vec))
+                Ok((len as u64,  piece_vec))
                 
             } else {
                 Err("Piece length is not an int or Pieces is not a string")
@@ -108,7 +126,7 @@ fn parse_fileinfo<'a>(val: &BencodeValue) -> Result<FileInfo, &'a str> {
             let length = info.iter().find(|&r| r.0 == "length".as_bytes());
             //if length is found, single file mode
             if let Some(&(_,BencodeValue::Integer(filelength))) = length {
-                let filelength = filelength as usize;
+                let filelength = filelength as u64;
                 Ok(FileInfo::Single { filename, filelength })
             } 
             //multi file mode
@@ -124,7 +142,7 @@ fn parse_fileinfo<'a>(val: &BencodeValue) -> Result<FileInfo, &'a str> {
                             let &(_, ref path) = f.iter().find(|&r| r.0 == "path".as_bytes()).ok_or("Could not find a file path")?;
                             if let (&BencodeValue::Integer(len), &BencodeValue::Str(ref path)) = (len, path)  {
                                 let path = str::from_utf8(path).map_err(|_| "Could not parse a file name from bytes")?;
-                                fileinfos.push(FileInfo::Single { filename: String::from(path), filelength: len as usize });
+                                fileinfos.push(FileInfo::Single { filename: String::from(path), filelength: len as u64 });
                                 
                             } else {
                                 return Err("Either len is not an integer of path is not a string")
