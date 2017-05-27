@@ -48,7 +48,7 @@ fn make_info_hash<'a>(val: &BencodeValue) -> Result<[u8;20], &'a str> {
         let &(_,ref info_dict) = d.iter().find(|&r| r.0 == "info".as_bytes()).ok_or("Could not find info dict")?;
         let to_hash = info_dict.bencode();
         let mut hasher = Sha1::new();
-        hasher.update(&to_hash.as_slice()[1..to_hash.len() - 1]);
+        hasher.update(&to_hash.as_slice());
         Ok(hasher.digest().bytes())
 
     } else {
