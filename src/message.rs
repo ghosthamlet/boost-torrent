@@ -75,7 +75,7 @@ impl BitTorrentMessage {
         NetworkEndian::write_u32(&mut u32bytebuf, msg.len() as u32); 
         send_buf.extend_from_slice(&u32bytebuf);
         send_buf.append(&mut msg);
-        dest.write(send_buf.as_slice()).map(|_| ()).map_err(|_| String::from("Could not send data to peer"))
+        dest.write(send_buf.as_slice()).map(|_| ()).map_err(|_| String::from("TCPERR"))
     }
 
     ///Recieves a message from the src and decodes it to self 
@@ -88,7 +88,7 @@ impl BitTorrentMessage {
             Ok(BitTorrentMessage::KeepAlive)
         } else {
             let mut data = Vec::with_capacity(msglen as usize);
-            src.read(data.as_mut_slice()).map_err(|_| "Could not receive data from peer 2")?;
+            src.read(data.as_mut_slice()).map_err(|_| "TCPERR")?;
             let msgid = data[0]; //get message id
             match msgid {
                 1 => Ok(BitTorrentMessage::Choke),
