@@ -2,9 +2,14 @@ extern crate regex;
 extern crate byteorder;
 extern crate rand;
 extern crate sha1;
+#[macro_use]
+extern crate bitflags;
 mod bencode;
 mod meta;
 mod tracker;
+mod peer;
+mod bitvector;
+mod message;
 
 use meta::MetaInfo;
 use meta::FileInfo::Single;
