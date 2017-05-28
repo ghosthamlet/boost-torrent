@@ -1,6 +1,5 @@
 use std::net::{TcpStream, SocketAddrV4, Ipv4Addr, SocketAddr, ToSocketAddrs, UdpSocket};
-use std::time::Duration;
-use byteorder::{NetworkEndian, NativeEndian, ByteOrder};
+use byteorder::{NetworkEndian, ByteOrder};
 use bencode::BencodeValue;
 use regex::Regex;
 use regex;
