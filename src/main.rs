@@ -10,6 +10,7 @@ mod tracker;
 mod peer;
 mod bitvector;
 mod message;
+mod torrentfile;
 
 use meta::MetaInfo;
 use meta::FileInfo::Single;
