@@ -2,6 +2,7 @@ use std::fs::{File, create_dir_all, create_dir};
 use std::io::prelude::*;
 use std::io::{BufWriter, SeekFrom};
 use meta::{MetaInfo, FileInfo};
+use error::{BoostError, BoostResult};
 
 ///A struct that holds the reader and writer for the torrent file.
 ///Writes will be buffered until a read.
@@ -15,7 +16,7 @@ pub struct TorrentFile {
 impl TorrentFile {
     ///Given a metainfo, creates a torrent file with all the space
     ///needed for the torrent
-    pub fn init(meta: MetaInfo) -> Result<Self,String> {
+    pub fn init(meta: MetaInfo) -> BoostResult<Self> {
         //working name is filename or root directory of multifile structure
         let working_name = match &meta.file_info {
             &FileInfo::Single {ref filename, ..} => filename.clone(),
@@ -30,34 +31,45 @@ impl TorrentFile {
                     if let &FileInfo::Single {filelength, ..} = file {
                         len += filelength;
                     } else {
-                        return Err(format!("One of the files was itself a multifile"))
+                        return Err(BoostError::TorrentFileMetaErr)
                     }
                 }
                 len
             }
         };
         //create the file
-        let writer = File::create(&working_name).map_err(|_| "Could not create file")?;
+        let writer = File::create(&working_name).map_err(|_| BoostError::FileOpenErr(working_name.clone()))?;
         //set file size
-        let _ = writer.set_len(working_len).map_err(|_| "Could not increas file len")?;
+        let _ = writer.set_len(working_len).map_err(|_| BoostError::TorrentFileAllocationErr)?;
         //get buffered writer withbuffer capacity for 10 whole pieces
         let file_writer = BufWriter::with_capacity(meta.piece_len as usize * 10, writer);
-        let file_reader = File::open(&working_name).map_err(|_| "Could not open file")?;
+        let file_reader = File::open(&working_name).map_err(|_|
+                                                            BoostError::FileOpenErr(working_name.clone()))?;
 
         Ok(TorrentFile { file_reader, file_writer, meta })
     }
 
     ///writes into the file from the buffer to the given offset in the file
-    pub fn write(&mut self, offset: u64, buffer: &[u8]) {
+    pub fn write(&mut self, offset: u64, buffer: &[u8]) -> BoostResult<usize>{
         let _ = self.file_writer.seek(SeekFrom::Start(offset));
-        let _ = self.file_writer.write(buffer);
+        self.file_reader.write(buffer).map_err(|_| BoostError::FileWriteErr(
+            match &self.meta.file_info {
+                &FileInfo::Single {ref filename, ..} => filename.clone(),
+                &FileInfo::Multi {ref rootdir,..} => rootdir.clone()
+            }
+        ))
     }
 
     ///reads into the buffer from the file at the given offset.
-    pub fn read(&mut self, offset: u64, buffer: &mut [u8]) {
+    pub fn read(&mut self, offset: u64, buffer: &mut [u8]) -> BoostResult<usize>{
         let _ = self.file_writer.flush();
         let _ = self.file_reader.seek(SeekFrom::Start(offset));
-        let _ = self.file_reader.read(buffer);
+        self.file_reader.read(buffer).map_err(|_| BoostError::FileReadErr(
+            match &self.meta.file_info {
+                &FileInfo::Single {ref filename, ..} => filename.clone(),
+                &FileInfo::Multi {ref rootdir,..} => rootdir.clone()
+            }
+        ))
     }
 }
 

@@ -1,4 +1,5 @@
 use std::str;
+use error::{BoostError, BoostResult};
 ///BencodeValue, one of int, string, list, dictionary.
 pub enum BencodeValue<'a> {
     Integer(i32),
@@ -10,7 +11,7 @@ pub enum BencodeValue<'a> {
 impl<'a> BencodeValue<'a> {
 
     ///Creates a new BencodeValue from the given u8 slice.
-    pub fn bdecode(data: &'a [u8]) -> Result<Self,&str> {
+    pub fn bdecode(data: &'a [u8]) -> BoostResult<Self> {
         let (res, _) = bdec(data);
         res
     }
@@ -59,7 +60,7 @@ impl<'a> BencodeValue<'a> {
 
 
 ///parses a bencoded data string, returns a result and the index after the last character parsed
-fn bdec<'a, 'b>(data: &'a [u8]) -> (Result<BencodeValue<'a>, &'b str>, usize) {
+fn bdec<'a>(data: &'a [u8]) -> (BoostResult<BencodeValue<'a>>, usize) {
     if data[0] as char == 'd' {
         //list
         let mut pos = 1;
@@ -95,13 +96,13 @@ fn bdec<'a, 'b>(data: &'a [u8]) -> (Result<BencodeValue<'a>, &'b str>, usize) {
             if let Ok(int_str) = str::from_utf8(int_data) {
                 match int_str.parse::<i32>() {
                     Ok(int) => (Ok(BencodeValue::Integer(int)),int_end+1),
-                    Err(_) => (Err("Error parsing an integer"),0)
+                    Err(_) => (Err(BoostError::BencodeDecodingErr),0)
                 }
             } else {
-                (Err("Error parsing integer, could not read ascii digits"),0)
+                (Err(BoostError::BencodeDecodingErr),0)
             }
         } else {
-            (Err("Error parsing integer, could not find end"),0)
+            (Err(BoostError::BencodeDecodingErr),0)
         }
 
 
@@ -133,13 +134,13 @@ fn bdec<'a, 'b>(data: &'a [u8]) -> (Result<BencodeValue<'a>, &'b str>, usize) {
                 if let Ok(slen) = len.parse::<usize>() {
                     (Ok(BencodeValue::Str(&string[1 .. slen+1])), (len.len() + slen+1) )
                 } else {
-                    (Err("Error parsing string, Could not determine length"),0)
+                    (Err(BoostError::BencodeDecodingErr),0)
                 }
             } else {
-                (Err("Error parsing string, could not read ascii length"),0)
+                (Err(BoostError::BencodeDecodingErr),0)
             }
         } else {
-            (Err("Error parsing string, no separating colon found"),0)
+            (Err(BoostError::BencodeDecodingErr),0)
         }
 
     }

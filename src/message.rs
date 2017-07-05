@@ -2,6 +2,7 @@ use std::net::TcpStream;
 use byteorder::{NetworkEndian, ByteOrder};
 use std::io::{Read, Write};
 use bitvector::BitVector;
+use error::{BoostError, BoostResult};
 
 ///An enum that represents the possible messages BitTorrent can send
 pub enum BitTorrentMessage {
@@ -19,7 +20,7 @@ pub enum BitTorrentMessage {
 
 impl BitTorrentMessage {
     ///Encodes self as the on-the-wire form and sends the result to the given dest
-    pub fn send(&self, dest: &mut TcpStream) -> Result<(),String> {
+    pub fn send(&self, dest: &mut TcpStream) -> BoostResult<()> {
         let mut msg = Vec::new(); //holds the data
         let mut u32bytebuf = [0u8; 4]; //used to convert u32 to network byte order byte arrays
         let mut send_buf = Vec::new(); //will be concat of msglen and msg
@@ -75,20 +76,20 @@ impl BitTorrentMessage {
         NetworkEndian::write_u32(&mut u32bytebuf, msg.len() as u32); 
         send_buf.extend_from_slice(&u32bytebuf);
         send_buf.append(&mut msg);
-        dest.write(send_buf.as_slice()).map(|_| ()).map_err(|_| String::from("TCPERR"))
+        dest.write(send_buf.as_slice()).map(|_| ()).map_err(|_| BoostError::BitTorrentTCPSendErr)
     }
 
     ///Recieves a message from the src and decodes it to self 
-    pub fn recv(src: &mut TcpStream) -> Result<Self,String> {
+    pub fn recv(src: &mut TcpStream) -> BoostResult<Self> {
         let mut u32bytebuf = [0u8;4];
-        src.read(&mut u32bytebuf).map_err(|_| "Could not receive data from peer 1")?;
+        src.read(&mut u32bytebuf).map_err(|_| BoostError::BitTorrentTCPRecvErr)?;
         let msglen = NetworkEndian::read_u32(&u32bytebuf);
 
         if msglen == 0 {
             Ok(BitTorrentMessage::KeepAlive)
         } else {
             let mut data = Vec::with_capacity(msglen as usize);
-            src.read(data.as_mut_slice()).map_err(|_| "TCPERR")?;
+            src.read(data.as_mut_slice()).map_err(|_| BoostError::BitTorrentTCPRecvErr)?;
             let msgid = data[0]; //get message id
             match msgid {
                 1 => Ok(BitTorrentMessage::Choke),
@@ -117,7 +118,7 @@ impl BitTorrentMessage {
                     let length = NetworkEndian::read_u32(&data[9..13]);
                     Ok(BitTorrentMessage::Cancel {piece_index, begin, length})
                 }
-                i => Err(format!("Message Id '{}' is not recognized", i))
+                i => Err(BoostError::BitTorrentProtocolErr(format!("Message Id '{}' is not recognized", i)))
             }
         }
 
