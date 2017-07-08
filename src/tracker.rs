@@ -11,17 +11,17 @@ use error::{BoostError, BoostResult};
 
 #[derive(Debug)]
 pub struct TrackerInfo {
-    interval: u32,
-    seeders: u32,
-    leechers: u32,
-    tracker_id: Option<String>,
-    potential_peers: Vec<PotentialPeer>
+    pub interval: u32,
+    pub seeders: u32,
+    pub leechers: u32,
+    pub tracker_id: Option<String>,
+    pub potential_peers: Vec<PotentialPeer>
 }
 
 #[derive(Debug)]
 pub struct PotentialPeer {
-    addr: SocketAddrV4,
-    id: Option<[u8;20]>
+    pub addr: SocketAddrV4,
+    pub id: Option<[u8;20]>
 }
 
 pub enum TrackerEvent {

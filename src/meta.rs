@@ -41,10 +41,18 @@ impl MetaInfo {
             }
         }
 
+        ///Gets the number of pieces this torrent has
+        pub fn num_pieces(&self) -> usize {
+            let bytes = self.file_info.total_bytes();
+            //if piece length does not evenly divide bytes, there will be an extra piece
+            let extra = if bytes % self.piece_len == 0 { 0 } else { 1 };
+            (bytes / self.piece_len + extra) as usize
+        }
 
 }
 
 impl FileInfo {
+    ///Gets the total number of bytes that this torrent will require on disk
     pub fn total_bytes(&self) -> u64 {
         match *self {
             FileInfo::Single { filelength, .. } => filelength,

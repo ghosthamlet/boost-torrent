@@ -18,6 +18,10 @@ use meta::MetaInfo;
 use meta::FileInfo::Single;
 use clap::{App,Arg};
 use error::BoostError;
+use bitvector::BitVector;
+use std::sync::{Arc, RwLock};
+use peer::{PeerFlags, Peer};
+use tracker::PotentialPeer;
 
 fn main() {
     //get command line arguments
@@ -36,17 +40,20 @@ fn main() {
 
     let file = args.value_of("meta").unwrap();
 
-    //set up variables
-    let peerid = "-BO1000-001234567890".as_bytes();
-
     //parse meta file
     let meta_info = meta::MetaInfo::parse_meta(file).unwrap_or_else(|err: BoostError| {
         println!("{}",err);
         std::process::exit(1)
     });
 
+    //set up variables
+    let peerid = "-BO1000-001234567890".as_bytes();
+    let bitvector = Arc::new(RwLock::new(BitVector::new(meta_info.num_pieces())));
+    let active_peers: Arc<RwLock<Vec<Peer>>> = Arc::new(RwLock::new(Vec::new()));
+    let potential_peers: Arc<RwLock<Vec<PotentialPeer>>> = Arc::new(RwLock::new(Vec::new()));
+
     //call out to tracker
-    let tracker_info = tracker::TrackerInfo::tracker_request(
+    let mut tracker_info = tracker::TrackerInfo::tracker_request(
         meta_info.announce_url.as_str(),
         &meta_info.info_hash,
         peerid,
@@ -61,6 +68,10 @@ fn main() {
         std::process::exit(2)
     });
 
-    println!("{:#?}",tracker_info)
+    {
+        potential_peers.write().expect("The lock was poisoned...").append(&mut tracker_info.potential_peers)
+    };
+
+    println!("{:#?}",potential_peers)
 }
 
