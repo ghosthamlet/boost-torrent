@@ -17,6 +17,7 @@ mod error;
 use meta::MetaInfo;
 use meta::FileInfo::Single;
 use clap::{App,Arg};
+use error::BoostError;
 
 fn main() {
     //get command line arguments
@@ -34,16 +35,32 @@ fn main() {
                         ).get_matches();
 
     let file = args.value_of("meta").unwrap();
-    match  meta::MetaInfo::parse_meta(file) {
-        Ok(MetaInfo { announce_url, piece_len:_, info_hash, piece_hashes: _, file_info: Single {filename:_, filelength}} ) => {
-            let peerid = "-BO1000-001234567890".as_bytes(); 
-            match tracker::TrackerInfo::tracker_request(announce_url.as_str(), &info_hash, peerid, 12345, 0, 0, filelength, tracker::TrackerEvent::Started, None) {
-                Ok(t) => println!("{:?}", t),
-                Err(e) => println!("Error: {}", e)
-            }
-        },
-        Err(e) => println!("{}",e),
-        _ => println!("?")
 
-    }
+    //set up variables
+    let peerid = "-BO1000-001234567890".as_bytes(); 
+
+    //parse meta file
+    let meta_info = meta::MetaInfo::parse_meta(file).unwrap_or_else(|err: BoostError| {
+        println!("{}",err);
+        std::process::exit(1)
+    });
+
+    //call out to tracker
+    let tracker_info = tracker::TrackerInfo::tracker_request(
+        meta_info.announce_url.as_str(), 
+        &meta_info.info_hash, 
+        peerid, 
+        12345, 
+        0, 
+        0, 
+        meta_info.file_info.total_bytes(),
+        tracker::TrackerEvent::Started, 
+        None
+    ).unwrap_or_else(|err: BoostError| {
+        println!("{}",err);
+        std::process::exit(2)
+    });
+
+    println!("{:#?}",tracker_info)
 }
+

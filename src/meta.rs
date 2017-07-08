@@ -44,6 +44,15 @@ impl MetaInfo {
 
 }
 
+impl FileInfo {
+    pub fn total_bytes(&self) -> u64 {
+        match *self {
+            FileInfo::Single { filelength, .. } => filelength,
+            FileInfo::Multi { ref files, .. } => files.iter().fold(0, |a, h| a + h.total_bytes())
+        }
+    }
+}
+
 fn make_info_hash(val: &BencodeValue) -> BoostResult<[u8;20]> {
     //get dict from val
     if let &BencodeValue::Dict(ref d) = val {
