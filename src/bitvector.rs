@@ -22,7 +22,7 @@ impl BitVector {
             self.vec[byte] = 0x80 >> bit;
         }
     }
-    
+
     ///checks if the given bit is a 0 or a 1
     pub fn index_isset(&self, index: usize) -> bool{
         if index < self.num_bits {
@@ -33,7 +33,7 @@ impl BitVector {
             false
         }
     }
-    
+
     ///checks if all the bits are 1
     pub fn is_complete(&self) -> bool {
         for index in 0..self.num_bits {
@@ -47,7 +47,7 @@ impl BitVector {
     ///clears all set 1s
     pub fn clear(&mut self) {
        for index in 0..self.vec.len() {
-           self.vec[index] = 0; 
+           self.vec[index] = 0;
        }
     }
 
@@ -61,7 +61,7 @@ impl BitVector {
                 }
             }
             false
-        } else { 
+        } else {
             false
        }
     }

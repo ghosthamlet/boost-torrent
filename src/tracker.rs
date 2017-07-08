@@ -33,15 +33,15 @@ pub enum TrackerEvent {
 
 impl TrackerInfo {
     ///send a request to the tracker at the given url, regardless of UDP or HTTP
-    pub fn tracker_request(url: &str, 
+    pub fn tracker_request(url: &str,
                            info_hash: &[u8],
-                           peer_id: &[u8], 
+                           peer_id: &[u8],
                            listen_port: u16,
-                           uploaded_bytes: u64, 
-                           downloaded_bytes: u64, 
-                           bytes_left: u64, 
-                           event: TrackerEvent, 
-                           tracker_id: Option<&str>) -> BoostResult<Self> { 
+                           uploaded_bytes: u64,
+                           downloaded_bytes: u64,
+                           bytes_left: u64,
+                           event: TrackerEvent,
+                           tracker_id: Option<&str>) -> BoostResult<Self> {
 
 
         //regext to match url, capture proto, domain, port and location
@@ -72,14 +72,14 @@ impl TrackerInfo {
 }
 
 ///Performs a UDP tracker request to the given address
-fn udp_tracker_request(server: SocketAddrV4, 
+fn udp_tracker_request(server: SocketAddrV4,
                        info_hash: &[u8],
-                       peer_id: &[u8], 
+                       peer_id: &[u8],
                        listen_port: u16,
-                       uploaded_bytes: u64, 
-                       downloaded_bytes: u64, 
-                       bytes_left: u64, 
-                       event: TrackerEvent) -> BoostResult<TrackerInfo> { 
+                       uploaded_bytes: u64,
+                       downloaded_bytes: u64,
+                       bytes_left: u64,
+                       event: TrackerEvent) -> BoostResult<TrackerInfo> {
 
     let mut buf : [u8;512]= [0;512];
     let udp_sock = UdpSocket::bind("0.0.0.0:0").map_err(|_| BoostError::TrackerUDPSendErr)?;
@@ -96,11 +96,11 @@ fn udp_tracker_request(server: SocketAddrV4,
     //recieve tracker response
     //recieve and check action
     udp_sock.recv_from(&mut buf[0..16]).map_err(|e| BoostError::TrackerUDPRecvErr)?;
-    if NetworkEndian::read_u32(&buf[0..4]) != 0 { 
+    if NetworkEndian::read_u32(&buf[0..4]) != 0 {
         return Err(BoostError::TrackerUDPProtocolErr)
     };
     //recieve and check transaction id
-    if NetworkEndian::read_u32(&buf[4..8]) != transaction_id { 
+    if NetworkEndian::read_u32(&buf[4..8]) != transaction_id {
         return Err(BoostError::TrackerUDPProtocolErr)
     };
     //recieve connection id
@@ -139,12 +139,12 @@ fn udp_tracker_request(server: SocketAddrV4,
     //recieve tracker info
     //recieve and check action
     udp_sock.recv_from(&mut buf).map_err(|_| BoostError::TrackerUDPRecvErr)?;
-    if NetworkEndian::read_u32(&buf[0..4]) != 1 { 
+    if NetworkEndian::read_u32(&buf[0..4]) != 1 {
         return Err(BoostError::TrackerUDPProtocolErr)
     };
     //recieve and check transaction id
-    if NetworkEndian::read_u32(&buf[4..8]) != transaction_id { 
-        return Err(BoostError::TrackerUDPProtocolErr) 
+    if NetworkEndian::read_u32(&buf[4..8]) != transaction_id {
+        return Err(BoostError::TrackerUDPProtocolErr)
     };
     let interval = NetworkEndian::read_u32(&buf[8..12]);
     let leechers = NetworkEndian::read_u32(&buf[12..16]);
@@ -158,7 +158,7 @@ fn udp_tracker_request(server: SocketAddrV4,
     while ipbuf[0] != 0 && 20+6*idx < 512 {
         let ip = Ipv4Addr::new(ipbuf[0], ipbuf[1], ipbuf[2], ipbuf[3]);
         let port = NetworkEndian::read_u16(&ipbuf[4..6]);
-        potential_peers.push(PotentialPeer { addr: SocketAddrV4::new(ip,port), id: None}); 
+        potential_peers.push(PotentialPeer { addr: SocketAddrV4::new(ip,port), id: None});
         idx += 1;
         ipbuf = &buf[20+6*idx..20+6*(idx+1)];
     }
@@ -182,23 +182,23 @@ fn url_encode(data: &[u8]) -> String {
 }
 
 ///performs an HTTP tracker request to the given address
-fn http_tracker_request(server: SocketAddrV4, 
+fn http_tracker_request(server: SocketAddrV4,
                         host: &str,
                         location: &str,
                         info_hash: &[u8],
-                        peer_id: &[u8], 
+                        peer_id: &[u8],
                         listen_port: u16,
-                        uploaded_bytes: u64, 
-                        downloaded_bytes: u64, 
-                        bytes_left: u64, 
-                        event: TrackerEvent, 
-                        tracker_id: Option<&str>) -> BoostResult<TrackerInfo> { 
+                        uploaded_bytes: u64,
+                        downloaded_bytes: u64,
+                        bytes_left: u64,
+                        event: TrackerEvent,
+                        tracker_id: Option<&str>) -> BoostResult<TrackerInfo> {
     let encoded_hash = url_encode(info_hash);
     let encoded_id = url_encode(peer_id);
 
     //why did i roll my own http lol
     //build my request string
-    let request_string = format!("GET {}?info_hash={}&peer_id={}&port={}&uploaded={}&downloaded={}&left={}&compact=1&no_peer_id=1", 
+    let request_string = format!("GET {}?info_hash={}&peer_id={}&port={}&uploaded={}&downloaded={}&left={}&compact=1&no_peer_id=1",
                                  location, encoded_hash, encoded_id, listen_port,
                                  uploaded_bytes, downloaded_bytes, bytes_left);
     let event_string = match event {
@@ -213,8 +213,7 @@ fn http_tracker_request(server: SocketAddrV4,
 
     //connect to server and send request
     let mut http_sock = TcpStream::connect(server).map_err(|_| BoostError::TrackerHTTPSendErr)?;
-    let _ = http_sock.write(request_string.as_bytes()).map_err(|_|
-                                                               BoostError::TrackerHTTPSendErr)?; 
+    let _ = http_sock.write(request_string.as_bytes()).map_err(|_| BoostError::TrackerHTTPSendErr)?;
     let mut response = Vec::new();
     let _ = http_sock.read_to_end(&mut response).map_err(|_| BoostError::TrackerHTTPRecvErr)?;
     let re = regex::bytes::Regex::new(r"HTTP/.* (\d{3}) OK\r\n((?:.|\s)*)\r\n\r\n((?-u:[\x00-\xff]*))").unwrap();
@@ -239,7 +238,7 @@ fn http_tracker_request(server: SocketAddrV4,
                 //if failure, return error
                 if *key == "failure reason".as_bytes() {
                     return Err(BoostError::TrackerHTTPProtocolErr)
-                } 
+                }
                 //get the interval
                 else if *key == "interval".as_bytes() {
                     if let &BencodeValue::Integer(i) = val {
@@ -306,7 +305,7 @@ fn http_tracker_request(server: SocketAddrV4,
                                         //gets the host
                                         else if *pkey == "port".as_bytes() {
                                             if let &BencodeValue::Integer(i) = pval {
-                                                port = i as u16; 
+                                                port = i as u16;
                                             } else {
                                                 return Err(BoostError::BencodeValueErr(String::from("Port is not an integer")))
                                             }

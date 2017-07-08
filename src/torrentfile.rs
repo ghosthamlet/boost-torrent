@@ -23,7 +23,7 @@ impl TorrentFile {
             &FileInfo::Multi {ref rootdir,..} => rootdir.clone()
         };
         //working len is the file len or the sum of all the file len
-        let working_len = meta.file_info.total_bytes();  
+        let working_len = meta.file_info.total_bytes();
         //create the file
         let writer = File::create(&working_name).map_err(|_| BoostError::FileOpenErr(working_name.clone()))?;
         //set file size

@@ -37,7 +37,7 @@ fn main() {
     let file = args.value_of("meta").unwrap();
 
     //set up variables
-    let peerid = "-BO1000-001234567890".as_bytes(); 
+    let peerid = "-BO1000-001234567890".as_bytes();
 
     //parse meta file
     let meta_info = meta::MetaInfo::parse_meta(file).unwrap_or_else(|err: BoostError| {
@@ -47,14 +47,14 @@ fn main() {
 
     //call out to tracker
     let tracker_info = tracker::TrackerInfo::tracker_request(
-        meta_info.announce_url.as_str(), 
-        &meta_info.info_hash, 
-        peerid, 
-        12345, 
-        0, 
-        0, 
+        meta_info.announce_url.as_str(),
+        &meta_info.info_hash,
+        peerid,
+        12345,
+        0,
+        0,
         meta_info.file_info.total_bytes(),
-        tracker::TrackerEvent::Started, 
+        tracker::TrackerEvent::Started,
         None
     ).unwrap_or_else(|err: BoostError| {
         println!("{}",err);

@@ -73,13 +73,13 @@ impl BitTorrentMessage {
 
             }
         }
-        NetworkEndian::write_u32(&mut u32bytebuf, msg.len() as u32); 
+        NetworkEndian::write_u32(&mut u32bytebuf, msg.len() as u32);
         send_buf.extend_from_slice(&u32bytebuf);
         send_buf.append(&mut msg);
         dest.write(send_buf.as_slice()).map(|_| ()).map_err(|_| BoostError::BitTorrentTCPSendErr)
     }
 
-    ///Recieves a message from the src and decodes it to self 
+    ///Recieves a message from the src and decodes it to self
     pub fn recv(src: &mut TcpStream) -> BoostResult<Self> {
         let mut u32bytebuf = [0u8;4];
         src.read(&mut u32bytebuf).map_err(|_| BoostError::BitTorrentTCPRecvErr)?;

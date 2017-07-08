@@ -71,7 +71,7 @@ fn bdec<'a>(data: &'a [u8]) -> (BoostResult<BencodeValue<'a>>, usize) {
             match bdec(&data[pos .. data.len()]) {
                 //parse string as key, if ok, parse value
                 (Ok(BencodeValue::Str(string)), end) => {
-                    //if parse value ok, advance position 
+                    //if parse value ok, advance position
                     pos += end;
                     match bdec(&data[pos .. data.len()]) {
                         (Ok(val), end) => {
@@ -86,7 +86,7 @@ fn bdec<'a>(data: &'a [u8]) -> (BoostResult<BencodeValue<'a>>, usize) {
             }
         }
         (Ok(BencodeValue::Dict(dct)), pos+1)
-        
+
     } else if data[0] as char == 'i' {
         //integer
         //find end

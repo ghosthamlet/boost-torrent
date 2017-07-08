@@ -66,7 +66,7 @@ impl Peer {
                     let mut id = [0u8; 20];
                     //get peer id
                     for idx in 0..20 {
-                       id[idx] = handshake_buf[idx+48]; 
+                       id[idx] = handshake_buf[idx+48];
                     }
                     Ok(Peer {id, socket: sock, bytes_sent: 0, bytes_received: 0, bit_vector: BitVector::new(num_pieces), flags: PeerFlags::empty(), pending_requests: 0})
                 } else {

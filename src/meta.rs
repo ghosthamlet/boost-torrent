@@ -98,7 +98,7 @@ fn parse_pieces(val: &BencodeValue) -> BoostResult<(u64, Vec<[u8;20]>)> {
                 let mut pos = 0;
                 let mut piece_vec = Vec::new();
                 //create fixed length array and copy 20 bytes from pieces string into it
-                while pieces.get(pos) != None { 
+                while pieces.get(pos) != None {
                     let mut hash : [u8;20] = [0;20];
                     for idx in 0..20 {
                         hash[idx] = pieces[idx];
@@ -107,7 +107,7 @@ fn parse_pieces(val: &BencodeValue) -> BoostResult<(u64, Vec<[u8;20]>)> {
                     pos+=20;
                 }
                 Ok((len as u64,  piece_vec))
-                
+
             } else {
                 Err(BoostError::BencodeValueErr(String::from("Piece length is not an int or Pieces is not a string")))
             }
@@ -141,7 +141,7 @@ fn parse_fileinfo(val: &BencodeValue) -> BoostResult<FileInfo> {
             if let Some(&(_,BencodeValue::Integer(filelength))) = length {
                 let filelength = filelength as u64;
                 Ok(FileInfo::Single { filename, filelength })
-            } 
+            }
             //multi file mode
             else {
                 //get list of files
@@ -156,7 +156,7 @@ fn parse_fileinfo(val: &BencodeValue) -> BoostResult<FileInfo> {
                             if let (&BencodeValue::Integer(len), &BencodeValue::Str(ref path)) = (len, path)  {
                                 let path = str::from_utf8(path).map_err(|_| BoostError::BencodeValueErr(String::from("Could not parse a file name from bytes")))?;
                                 fileinfos.push(FileInfo::Single { filename: String::from(path), filelength: len as u64 });
-                                
+
                             } else {
                                 return Err(BoostError::BencodeValueErr(String::from("Either len is not an integer of path is not a string")))
                             }
