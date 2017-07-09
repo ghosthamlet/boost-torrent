@@ -1,3 +1,4 @@
+use std::fmt;
 ///A struct that holds a bitvector
 pub struct BitVector {
     vec: Vec<u8>,
@@ -85,5 +86,19 @@ impl BitVector {
 
     pub fn as_bytes(&self) -> &[u8] {
         self.vec.as_slice()
+    }
+}
+
+impl fmt::Display for BitVector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut res = String::new();
+        for idx in 0..self.num_bits {
+            if self.index_isset(idx) {
+                res.push('1')
+            } else {
+                res.push('0')
+            }
+        };
+        write!(f, "{}", res)
     }
 }

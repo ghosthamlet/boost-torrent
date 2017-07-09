@@ -1,4 +1,5 @@
 use std::result;
+use message::BitTorrentMessage;
 use std::fmt;
 
 pub enum BoostError {
@@ -21,7 +22,8 @@ pub enum BoostError {
     TorrentFileAllocationErr,
     BitTorrentProtocolErr(String),
     BitTorrentTCPSendErr,
-    BitTorrentTCPRecvErr
+    BitTorrentTCPRecvErr,
+    UnexpectedMessageType(BitTorrentMessage)
 }
 
 impl fmt::Display for BoostError {
@@ -46,7 +48,8 @@ impl fmt::Display for BoostError {
             BoostError::TorrentFileAllocationErr => write!(f, "Could not allocate disk space for torrent file"),
             BoostError::BitTorrentProtocolErr(ref msg) => write!(f, "Error communicating with a peer: {}", msg),
             BoostError::BitTorrentTCPSendErr => write!(f, "Error sending data to peer over TCP"),
-            BoostError::BitTorrentTCPRecvErr => write!(f, "Error recieving data from peer over TCP")
+            BoostError::BitTorrentTCPRecvErr => write!(f, "Error recieving data from peer over TCP"),
+            BoostError::UnexpectedMessageType(ref msg) => write!(f, "Got an unexpected message type: {}", msg)
         }
     }
 }

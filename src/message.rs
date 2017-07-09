@@ -3,6 +3,7 @@ use byteorder::{NetworkEndian, ByteOrder};
 use std::io::{Read, Write};
 use bitvector::BitVector;
 use error::{BoostError, BoostResult};
+use std::fmt;
 
 ///An enum that represents the possible messages BitTorrent can send
 pub enum BitTorrentMessage {
@@ -122,5 +123,22 @@ impl BitTorrentMessage {
             }
         }
 
+    }
+}
+
+impl fmt::Display for BitTorrentMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            BitTorrentMessage::KeepAlive => write!(f, "Keep Alive"),
+            BitTorrentMessage::Choke => write!(f, "Choke"),
+            BitTorrentMessage::Unchoke => write!(f, "Unchoke"),
+            BitTorrentMessage::Interested => write!(f, "Interested"),
+            BitTorrentMessage::NotInterested => write!(f, "Not Interested"),
+            BitTorrentMessage::Have(idx) => write!(f, "Have pice number {}", idx),
+            BitTorrentMessage::Bitfield(ref bitvector) => write!(f, "Have bitvector {}", bitvector),
+            BitTorrentMessage::Request { piece_index, begin, length} => write!(f, "Request piece number {}, starting at {} and going for {} bytes", piece_index, begin, length),
+            BitTorrentMessage::Piece { piece_index, begin, ref block} => write!(f, "Recieved piece number {}, starting at {} and going for {} bytes", piece_index, begin, block.len()),
+            BitTorrentMessage::Cancel { piece_index, begin, length } => write!(f, "canceled Request for piece number {}, starting at {} and going for {} bytes", piece_index, begin, length)
+        }
     }
 }
