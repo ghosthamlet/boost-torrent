@@ -13,15 +13,16 @@ mod bitvector;
 mod message;
 mod torrentfile;
 mod error;
+mod piece;
 
 use meta::MetaInfo;
-use meta::FileInfo::Single;
 use clap::{App,Arg};
 use error::BoostError;
 use bitvector::BitVector;
 use std::sync::{Arc, RwLock};
 use peer::{PeerFlags, Peer};
 use tracker::PotentialPeer;
+use piece::Piece;
 
 fn main() {
     //get command line arguments
@@ -48,9 +49,10 @@ fn main() {
 
     //set up variables
     let peerid = "-BO1000-001234567890".as_bytes();
-    let bitvector = Arc::new(RwLock::new(BitVector::new(meta_info.num_pieces())));
+    let completed = Arc::new(RwLock::new(BitVector::new(meta_info.num_pieces())));
     let active_peers: Arc<RwLock<Vec<Peer>>> = Arc::new(RwLock::new(Vec::new()));
     let potential_peers: Arc<RwLock<Vec<PotentialPeer>>> = Arc::new(RwLock::new(Vec::new()));
+    let working_pieces: Arc<RwLock<Vec<Piece>>> = Arc::new(RwLock::new(Vec::new()));
 
     //call out to tracker
     let mut tracker_info = tracker::TrackerInfo::tracker_request(

@@ -66,6 +66,15 @@ impl BitVector {
        }
     }
 
+    pub fn first_unset_index(&self) -> usize {
+        for idx in 0..self.num_bits {
+            if !self.index_isset(idx) {
+                return idx
+            }
+        }
+        self.num_bits
+    }
+
     pub fn bit_len(&self) -> usize {
         self.num_bits
     }
