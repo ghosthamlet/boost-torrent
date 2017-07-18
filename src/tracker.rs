@@ -41,7 +41,7 @@ impl TrackerInfo {
                            downloaded_bytes: u64,
                            bytes_left: u64,
                            event: TrackerEvent,
-                           tracker_id: Option<&str>) -> BoostResult<Self> {
+                           tracker_id: Option<String>) -> BoostResult<Self> {
 
 
         //regext to match url, capture proto, domain, port and location
@@ -192,7 +192,7 @@ fn http_tracker_request(server: SocketAddrV4,
                         downloaded_bytes: u64,
                         bytes_left: u64,
                         event: TrackerEvent,
-                        tracker_id: Option<&str>) -> BoostResult<TrackerInfo> {
+                        tracker_id: Option<String>) -> BoostResult<TrackerInfo> {
     let encoded_hash = url_encode(info_hash);
     let encoded_id = url_encode(peer_id);
 
@@ -207,7 +207,7 @@ fn http_tracker_request(server: SocketAddrV4,
         TrackerEvent::Started => "event=started",
         TrackerEvent::Stopped => "event=stopped"
     };
-    let tracker_string = tracker_id.unwrap_or("");
+    let tracker_string = tracker_id.unwrap_or(String::new());
     let request_string = format!("{}{}{} HTTP/1.1\r\nUser-Agent: BoostTorrent/0.2\r\nAccept:*/*\r\nHost: {}:{}\r\n\r\n",
                                  request_string, event_string, tracker_string, host, server.port());
 
