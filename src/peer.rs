@@ -4,6 +4,7 @@ use byteorder::{NetworkEndian, ByteOrder};
 use std::io::{Read, Write};
 use std::str;
 use error::{BoostError, BoostResult};
+use message::BitTorrentMessage;
 
 bitflags! {
     pub struct PeerFlags: u32 {
@@ -11,7 +12,7 @@ bitflags! {
         const CHOKING           = 0b00000010;
         const INTERESTED_IN_ME  = 0b00000100;
         const INTERESTED_IN_THEM= 0b00001000;
-        const NEW_CONNECTION    = 0b00010000;
+        const INCOMING          = 0b00010000;
     }
 }
 
@@ -28,9 +29,10 @@ pub struct Peer {
 }
 
 impl Peer {
-    ///Takes a freshly created tcp socket, as well as this client's id, the info hash, and the
-    ///number of pieces and performs the handshake, and starts the connection!
-    pub fn start_session(mut sock: TcpStream, my_id: &[u8], info_hash: &[u8], num_pieces: usize) -> BoostResult<Self> {
+    ///Takes a freshly created tcp socket, as well as this client's id, the info hash, the
+    ///number of pieces and whether this connection is incoming or outgoing,
+    ///and performs the handshake, and starts the connection!
+    pub fn start_session(mut sock: TcpStream, my_id: &[u8], info_hash: &[u8], num_pieces: usize, incoming: bool) -> BoostResult<Self> {
         let mut handshake_buf = Vec::new();
 
         //proto string len
@@ -64,11 +66,13 @@ impl Peer {
                 //check info hash
                 if info_hash == &handshake_buf[28..48] {
                     let mut id = [0u8; 20];
+                    let mut flags = PeerFlags::empty();
+                    flags.set(INCOMING, incoming);
                     //get peer id
                     for idx in 0..20 {
                        id[idx] = handshake_buf[idx+48];
                     }
-                    Ok(Peer {id, socket: sock, bytes_sent: 0, bytes_received: 0, bit_vector: BitVector::new(num_pieces), flags: PeerFlags::empty(), pending_requests: 0})
+                    Ok(Peer {id, socket: sock, bytes_sent: 0, bytes_received: 0, bit_vector: BitVector::new(num_pieces), flags: flags, pending_requests: 0})
                 } else {
                     Err(BoostError::BitTorrentProtocolErr(String::from("Info hash was not
                     correct")))
@@ -81,4 +85,18 @@ impl Peer {
             Err(BoostError::BitTorrentProtocolErr(format!("Recieved handshake protocol string length was {} != 19", handshake_buf[0])))
         }
     }
+
+
+    ///blocks listening for a message. If there is some kind of IO error,
+    ///this peer should be removed from the active peers
+    pub fn recv_message(&mut self) -> BoostResult<BitTorrentMessage> {
+        BitTorrentMessage::recv(&mut self.socket)
+    }
+
+    ///Sends the given message to this peer.  If there is some kind of IO error,
+    ///this peer should be removed from the active peers
+    pub fn send_message(&mut self, message: BitTorrentMessage) -> BoostResult<()> {
+        message.send(&mut self.socket)
+    }
+
 }
