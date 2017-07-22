@@ -19,7 +19,7 @@ bitflags! {
 
 ///A struct that represents a connected peer
 pub struct Peer {
-    id: [u8; 20],
+    pub id: [u8; 20],
     socket: TcpStream,
     bytes_sent: u32,
     bytes_received: u32,
@@ -97,6 +97,12 @@ impl Peer {
     ///this peer should be removed from the active peers
     pub fn send_message(&mut self, message: BitTorrentMessage) -> BoostResult<()> {
         message.send(&mut self.socket)
+    }
+
+    ///tells whether this peer was created by connecting to it (outgoing)
+    ///or by it connecting to us (incoming)
+    pub fn is_incoming(&self) -> bool {
+        return !(self.flags & INCOMING).is_empty()
     }
 
 }
