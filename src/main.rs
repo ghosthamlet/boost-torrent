@@ -24,9 +24,10 @@ use peer::{PeerFlags, Peer};
 use tracker::PotentialPeer;
 use piece::Piece;
 use std::sync::atomic::{AtomicUsize, AtomicBool, Ordering};
-use std::net::{TcpListener, TcpStream, SocketAddr};
+use std::net::{TcpListener, TcpStream, SocketAddr, Shutdown};
 use rand::Rng;
 use std::{thread, time};
+use message::BitTorrentMessage;
 
 
 fn main() {
@@ -61,6 +62,7 @@ fn main() {
     let active_peers: Arc<RwLock<Vec<Peer>>> = Arc::new(RwLock::new(Vec::new()));
     let potential_peers: Arc<RwLock<Vec<PotentialPeer>>> = Arc::new(RwLock::new(Vec::new()));
     let working_pieces: Arc<RwLock<Vec<Piece>>> = Arc::new(RwLock::new(Vec::new()));
+    let request_queue: Arc<RwLock<Vec<(&Peer, &BitTorrentMessage)>>> = Arc::new(RwLock::new(Vec::new()));
     let total_uploaded = Arc::new(AtomicUsize::new(0));
     let total_downloaded = Arc::new(AtomicUsize::new(0));
     let listener = TcpListener::bind("0.0.0.0:0").expect("Error creating listener socket");
@@ -122,6 +124,12 @@ fn main() {
         );
     //tell infininte looping threads to wrap up so they can be joined
     wrap_up.store(true, Ordering::Relaxed);
+    //disconnect all active peers so their reciever threads will die
+    {
+        for peer in active_peers.read().expect("The active peers lock was poisoned").iter() {
+            let _ = peer.socket.shutdown(Shutdown::Both);
+        }
+    };
 
     //join all threads
     let _ = tracker_thread.join();
@@ -217,6 +225,9 @@ fn start_peer_management_thread(
         //wait for a death message from some peer
         while let Ok(peer_id) = death_listener.recv() {
             //if time to wrap up, for get about the peer and just end
+            //when time to wrap up, all reciever threads will send out death
+            //signals, so the blocking death_listener will not prevent wrap_up
+            //from occuring
             if wrap_up.load(Ordering::Relaxed) {
                 return
             } else {
@@ -248,5 +259,33 @@ fn start_peer_management_thread(
                 }
             }
         }
+    })
+}
+
+fn start_peer_recv_thread(
+                          death_announcer: mpsc::Sender<[u8;20]>,
+                          request_queue: Arc<RwLock<Vec<(&Peer, &BitTorrentMessage)>>>,
+                          active_peers: Arc<RwLock<Vec<Peer>>>,
+                          peer_idx: usize,
+                          total_uploaded: Arc<AtomicUsize>,
+                          total_downloaded: Arc<AtomicUsize>,
+                          wrap_up: Arc<AtomicBool>
+                          ) -> thread::JoinHandle<()> {
+
+    thread::spawn(move || {
+        //doing this instead of passing peer directly so we can garuntee to the compiler
+        //that the peer will live longer than the reference we are taking to it
+        let ref mut peer = active_peers.write().expect("The active peers lock was poisoned")[peer_idx];
+        while let Ok(message) = peer.recv_message() {
+            if wrap_up.load(Ordering::Relaxed) {
+                break
+            }
+            match message {
+                _ => "not done yet"
+            };
+        }
+        //if we get here, there was an error or we are supposed to wrap up.
+        //tell the manager to clean this peer up
+        let _ = death_announcer.send(peer.id);
     })
 }

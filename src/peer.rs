@@ -20,7 +20,7 @@ bitflags! {
 ///A struct that represents a connected peer
 pub struct Peer {
     pub id: [u8; 20],
-    socket: TcpStream,
+    pub socket: TcpStream,
     bytes_sent: u32,
     bytes_received: u32,
     bit_vector: BitVector,
